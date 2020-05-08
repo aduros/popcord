@@ -1,0 +1,126 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const ws = require("ws");
+
+const server = new ws.Server({port: 8080});
+
+// TODO: handle channel removal
+const channels = new Map();
+
+class User {
+    constructor (client) {
+        this.client = client;
+        this.channel = null;
+    }
+
+    call (method, args) {
+        this.client.send(JSON.stringify({method, args}));
+    }
+
+    setChannel (channel) {
+        if (this.channel != null) {
+            this.channel._removeUser(this);
+        }
+        this.channel = channel;
+        if (channel != null) {
+            channel._addUser(this);
+        }
+    }
+}
+
+class Channel {
+    constructor (id) {
+        this.id = id;
+        this.users = new Set();
+
+        this.lastUpdateMs = Date.now();
+        this.currentTime = 0;
+        this.paused = true;
+    }
+
+    broadcast (method, args) {
+        console.log("Broadcasting", method, args);
+        for (let user of this.users) {
+            user.call(method, args);
+        }
+    }
+
+    _addUser (user) {
+        this.users.add(user);
+        // this.broadcast("setOccupants", {count: this.users.size});
+        this.broadcast("setOccupants", {count: 666});
+
+        // Update the new user with the current playback state
+        let currentTime = this.currentTime;
+        if (!this.paused) {
+            currentTime += (Date.now()-this.lastUpdateMs) / 1000;
+        }
+        user.call("update", { currentTime, paused: this.paused });
+    }
+
+    _removeUser (user) {
+        this.users.delete(user);
+        this.broadcast("setOccupants", {count: this.users.size});
+
+        // Dispose empty channels
+        // TODO: channels could be a weak reference?
+        if (this.users.size == 0) {
+            channels.delete(this.id);
+        }
+    }
+}
+
+function getChannel (id) {
+    let channel = channels.get(id);
+    if (channel == null) {
+        channels.set(id, channel = new Channel(id));
+    }
+    return channel;
+}
+
+// Methods callable by clients
+const RPC = {
+    update (user, {currentTime, paused}) {
+        let channel = user.channel;
+
+        channel.lastUpdateMs = Date.now();
+        channel.currentTime = currentTime;
+        channel.paused = paused;
+
+        for (let peer of user.channel.users) {
+            if (peer != user) {
+                peer.call("update", {currentTime, paused});
+            }
+        }
+    },
+
+    setChannel (user, {id}) {
+        let channel = getChannel(id);
+        user.setChannel(channel);
+    },
+};
+
+server.on("connection", client => {
+    let user = new User(client);
+
+    console.log("Client connected");
+
+    client.on("message", data => {
+        let message = JSON.parse(data);
+        let {method, args} = message;
+        let fn = RPC[method];
+
+        console.log("Received message from client", message);
+        if (fn == null) {
+            throw new Error("Missing method: "+method);
+        }
+        fn(user, args);
+    });
+
+    client.on("close", () => {
+        console.log("Client disconnected");
+        user.setChannel(null);
+    });
+});

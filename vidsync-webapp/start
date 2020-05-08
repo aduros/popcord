@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const express = require("express");
+const expressHandlebars = require("express-handlebars");
+
+const app = express();
+
+app.use(express.static("public"));
+app.engine("handlebars", expressHandlebars());
+app.set("view engine", "handlebars");
+
+app.get("/", (req, res) => {
+    res.render("landing");
+});
+
+app.get("/share/:channel", (req, res) => {
+    let destination = req.query.u;
+    let parsed = new URL(destination);
+    let siteName = parsed.hostname.replace(/^www\./, "") || "site";
+
+    res.render("share", { siteName });
+});
+
+app.listen(3100);
