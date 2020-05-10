@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
     res.render("landing");
 });
 
-app.get("/share/:channel", (req, res) => {
+app.get("/invite/:channel", (req, res) => {
     let destination = req.query.u;
     let parsed = new URL(destination);
     let siteName = parsed.hostname.replace(/^www\./, "") || "site";

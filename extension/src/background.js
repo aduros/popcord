@@ -2,9 +2,9 @@
 
 const l10n = require("./l10n");
 const messaging = require("./messaging");
+const config = require("./config");
 
 const DEBUG = process.env.NODE_ENV != "production";
-const TITLE = "Video Sync";
 
 console.log("Hello background");
 console.log("Debug build? "+DEBUG);
@@ -27,8 +27,10 @@ function setChannel (tabId, channel, callback) {
     });
 }
 
-// function removeChannel (tabId, callback) {
-// }
+function removeChannel (tabId, callback) {
+    // Maybe should actually remove?
+    setChannel(tabId, null, callback);
+}
 
 function removeAllChannels (callback) {
     chrome.storage.local.remove("tabChannels", callback);
@@ -56,7 +58,7 @@ function parseShareUrl (url) {
 }
 
 function createShareUrl ({channel, destination}) {
-    return "http://localhost:3100/share/"+channel+"?u="+encodeURIComponent(destination);
+    return config.WEB_URL + "/invite/"+encodeURIComponent(channel)+"?u="+encodeURIComponent(destination);
 }
 
 messaging.exposeFunctions({
@@ -67,6 +69,7 @@ messaging.exposeFunctions({
             function injectClient () {
                 chrome.tabs.executeScript(tab.id, {
                     file: "/client.js",
+                    // allFrames: true,
                 });
             }
             getChannel(tab.id, channel => {
@@ -124,23 +127,26 @@ messaging.exposeFunctions({
         getChannel(sender.tab.id, callback);
     },
 
-    // onConnect (sender, args, callback) {
-    //     callback();
-    // },
-    //
-    // onDisconnect (sender, args, callback) {
-    //     chrome.pageAction.setIcon({
-    //         tabId: sender.tab.id,
-    //         path: "/icons/default16.png",
-    //     }, callback);
-    // },
+    // Called when the user wants to leave the channel
+    disconnect (sender, args, callback) {
+        removeChannel(sender.tab.id, callback);
+    },
+
+    onDisconnect (sender, args, callback) {
+        chrome.pageAction.setIcon({ tabId: sender.tab.id, path: "/icons/default16.png" });
+
+        let status = l10n.getStatusText(0);
+        chrome.pageAction.setTitle({tabId: sender.tab.id, title: config.TITLE});
+
+        callback();
+    },
 
     setStatus (sender, {count}, callback) {
         let icon = count > 1 ? "together" : "alone";
         chrome.pageAction.setIcon({ tabId: sender.tab.id, path: "/icons/"+icon+"16.png" });
 
         let status = l10n.getStatusText(count);
-        chrome.pageAction.setTitle({tabId: sender.tab.id, title: TITLE+" | "+status});
+        chrome.pageAction.setTitle({tabId: sender.tab.id, title: config.TITLE+" | "+status});
 
         callback();
     },
@@ -152,17 +158,21 @@ chrome.tabs.onUpdated.addListener((tabId, {status}) => {
         return;
     }
 
+    chrome.pageAction.show(tabId);
+
     getChannel(tabId, function (channel) {
         console.log("Channel for tab", tabId, channel);
         if (channel != null) {
             chrome.tabs.executeScript(tabId, {
                 file: "/client.js",
+                // allFrames: true,
             });
         }
     });
 });
 
 // chrome.pageAction.onClicked.addListener(tab => {
+//     alert("CLICKED");
 // });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -171,18 +181,24 @@ chrome.runtime.onStartup.addListener(() => {
 
 chrome.runtime.onInstalled.addListener(details => {
     // removeAllChannels();
-
-    chrome.declarativeContent.onPageChanged.removeRules(null, () => {
-        let rule = {
-            conditions: [
-                new chrome.declarativeContent.PageStateMatcher({
-                    css: ["video"],
-                }),
-            ],
-            actions: [
-                new chrome.declarativeContent.ShowPageAction(),
-            ],
-        };
-        chrome.declarativeContent.onPageChanged.addRules([rule]);
+    console.log("onInstalled");
+    chrome.tabs.query({}, tabs => {
+        for (let tab of tabs) {
+            chrome.pageAction.show(tab.id);
+        }
     });
+
+    // chrome.declarativeContent.onPageChanged.removeRules(null, () => {
+    //     // let rule = {
+    //     //     conditions: [
+    //     //         new chrome.declarativeContent.PageStateMatcher({
+    //     //             css: ["video"],
+    //     //         }),
+    //     //     ],
+    //     //     actions: [
+    //     //         new chrome.declarativeContent.ShowPageAction(),
+    //     //     ],
+    //     // };
+    //     // chrome.declarativeContent.onPageChanged.addRules([rule]);
+    // });
 });

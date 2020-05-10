@@ -1,0 +1,5 @@
+#!/bin/sh -e
+
+npm run build
+rm -f dist-release.zip
+zip -r dist-release.zip dist

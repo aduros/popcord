@@ -1,18 +1,27 @@
-<div class="container" style="margin-top: 100px">
+<div class="container" style="margin-top: 200px">
 <div id="share-jumbotron" class="jumbotron" style="visibility: hidden">
-  <!-- <h1 class="display&#45;4">Hello, world!</h1> -->
-  <p class="lead">This is a simple hero unit, a simple jumbotron-style component for calling extra attention to featured content or information.</p>
+  <!-- <h1 class="display&#45;5">Watch Videos in Sync</h1> -->
+  <p class="lead">You've been invited to watch a video together at {{siteName}}.</p>
+  <hr class="my-4">
   <div id="need-chrome" style="display: none">
-    <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
-    <a class="btn btn-block btn-primary btn-lg" href="https://www.google.com/chrome/" target="_blank" role="button">(icon) Download Google Chrome</a>
+      <p>Before you start, you need to use Google Chrome.</p>
+      <div class="text-center">
+          <a class="btn btn-primary btn-lg" href="https://www.google.com/chrome/" target="_blank" role="button">
+              <i class="fas fa-external-link-alt"></i> Download Google Chrome</a>
+      </div>
   </div>
   <div id="need-extension" style="display: none">
-    <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
-    <a class="btn btn-block btn-primary btn-lg" href="https://chrome.google.com/webstore/detail/netflix-party/oocalimimngaihdkbihfgmpkcpnmlaoa" target="_blank" role="button">(icon) Add to Google Chrome</a>
+    <p>Before you start, you need to add the free extension to Google Chrome.</p>
+    <div class="text-center">
+        <a class="btn btn-primary btn-lg" href="https://chrome.google.com/webstore/detail/gaobldoddnlopccjidfbahcofidniohn" target="_blank" role="button">
+        <i class="fas fa-external-link-alt"></i> Add to Google Chrome</a>
+    </div>
   </div>
   <div id="need-permission" style="display: none">
-    <p>It uses utility classes for typography and spacing to space content out within the larger container.</p>
-    <a id="grant-permission" class="btn btn-block btn-primary btn-lg" href="#" role="button"><i class="icon-external-link"></i> Continue to {{siteName}}</a>
+      <p>Before you go, you need to allow Video Sync to work on {{siteName}}.</p>
+      <div class="text-center">
+          <a id="grant-permission" class="btn btn-primary btn-lg" href="#" role="button">Allow and continue to {{siteName}}</a>
+      </div>
   </div>
 </div>
 </div>

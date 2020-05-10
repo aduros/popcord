@@ -11,7 +11,7 @@ function exposeFunctions (functions) {
             // throw new Error("Missing method: "+method);
             return;
         }
-        fn(sender, args, callback);
+        fn.call(functions, sender, args, callback);
         return true;
     }
 

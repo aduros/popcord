@@ -20,8 +20,8 @@ messaging.exposeFunctions({
     },
 });
 
-var share = document.getElementById("share");
-share.onclick = function () {
+let share = document.getElementById("share");
+share.onclick = () => {
     share.onclick = null;
     messaging.call("connectFromPopup", url => {
         navigator.clipboard.writeText(url);
@@ -29,13 +29,22 @@ share.onclick = function () {
     });
 };
 
-var disconnect = document.getElementById("disconnect");
-disconnect.onclick = function () {
+let disconnect = document.getElementById("disconnect");
+disconnect.onclick = () => {
     disconnect.onclick = null;
-    messaging.callOnCurrentTab("disconnect");
+    messaging.call("disconnect"); // background.js
+    messaging.callOnCurrentTab("disconnect"); // client.js
 };
 
 setStatus(false, 0);
 messaging.callOnCurrentTab("getStatus", ({connected, count}) => {
     setStatus(connected, count);
+});
+
+let noVideoWarning = document.getElementById("no-video-warning");
+noVideoWarning.style.display = "none";
+chrome.tabs.executeScript({
+    code: "document.querySelector('video') != null",
+}, ([hasVideo]) => {
+    noVideoWarning.style.display = hasVideo ? "none" : "";
 });

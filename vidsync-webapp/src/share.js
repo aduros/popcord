@@ -1,6 +1,10 @@
 "use strict";
 
-var extensionId = "mmcfiocbpgbfnboacbaddlofcackkikb";
+const DEBUG = process.env.NODE_ENV != "production";
+
+var extensionId = DEBUG
+    ? "mmcfiocbpgbfnboacbaddlofcackkikb"
+    : "gaobldoddnlopccjidfbahcofidniohn";
 
 var states = [
     document.getElementById("need-chrome"),

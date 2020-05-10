@@ -1,6 +1,10 @@
 "use strict";
 
+const config = require("./config");
 const messaging = require("./messaging");
+const videoPlayer = require("./videoPlayer");
+
+const DEBUG = process.env.NODE_ENV != "production";
 
 let socket = null;
 let running = false;
@@ -8,10 +12,12 @@ let running = false;
 let statusCount = 0;
 
 function run () {
+    console.log("Called run");
     if (running) {
         return;
     }
     running = true;
+    console.log("Running!");
 
     messaging.exposeFunctions({
         getStatus (sender, args, callback) {
@@ -29,50 +35,44 @@ function run () {
         },
     });
 
-    messaging.call("getChannel", channel => {
+    messaging.call("getChannel", async channel => {
         if (channel == null) {
             return; // Normal?
         }
 
-        // TODO: use MutationObserver to detect dynamically added videos
-        let videos = document.getElementsByTagName("video");
-        if (videos.length == 0) {
-            return;
-        }
-
-        // TODO: get the biggest one?
-        let video = videos[0];
+        let player = await videoPlayer.create();
 
         let blockUpdates = false;
+        let lastUpdateFromServer = -1;
 
-        // let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
-        // let player = videoPlayer.getVideoPlayerBySessionId(
-        //     videoPlayer.getAllPlayerSessionIds()[0]
-        // );
-        // player.seek(Math.round(Number(event.data.vemosSeekTime)) * 1000);
-
-        socket = new WebSocket("ws://127.0.0.1:8080");
+        socket = new WebSocket(config.SOCKET_URL);
         function callServer (method, args) {
             socket.send(JSON.stringify({ method, args }));
         }
 
+        function sendUpdate () {
+            console.log("Sending update to server");
+            callServer("update", {
+                currentTime: player.getCurrentTime(),
+                paused: player.getPaused(),
+            });
+        }
+
         let RPC = {
+            // Called by the server to update this client
             update ({currentTime, paused}) {
-                blockUpdates = true;
-                video.currentTime = currentTime;
-                if (paused) {
-                    video.pause();
-                } else {
-                    video.play();
-                }
-                setTimeout(() => {
-                    blockUpdates = false;
-                }, 0);
+                lastUpdateFromServer = Date.now();
+                player.update(currentTime, paused);
             },
 
             setOccupants ({count}) {
                 statusCount = count;
                 messaging.call("setStatus", {connected: true, count});
+            },
+
+            // Called by the server when it wants an update from this client
+            requestUpdate () {
+                sendUpdate();
             },
         };
 
@@ -80,18 +80,22 @@ function run () {
             console.log("Connected to server");
             // messaging.call("onConnect");
 
-            function onVideoUpdate () {
-                if (blockUpdates) {
-                    return;
+            let batchingUpdate = false;
+            player.addUpdateListener(() => {
+                console.log("player update listener fired");
+                if (Date.now() - lastUpdateFromServer < 300) {
+                    console.log("TOO SOON");
+                    return; // Too soon, this event probably came from a server update and not the user
                 }
-                console.log("Sending update to server");
-                callServer("update", {currentTime: video.currentTime, paused: video.paused});
-            }
-            video.addEventListener("pause", onVideoUpdate);
-            video.addEventListener("play", onVideoUpdate);
-            video.addEventListener("seeking", onVideoUpdate);
-            // video.addEventListener("playing", onVideoUpdate);
-            // video.addEventListener("seeked", onVideoUpdate);
+                // sendUpdate();
+                if (!batchingUpdate) {
+                    batchingUpdate = true;
+                    setTimeout(() => {
+                        batchingUpdate = false;
+                        sendUpdate();
+                    }, 1000);
+                }
+            });
 
             socket.onmessage = event => {
                 let message = JSON.parse(event.data);

@@ -4,9 +4,8 @@
 
 const ws = require("ws");
 
-const server = new ws.Server({port: 8080});
+const server = new ws.Server({port: 3101});
 
-// TODO: handle channel removal
 const channels = new Map();
 
 class User {
@@ -35,6 +34,7 @@ class Channel {
         this.id = id;
         this.users = new Set();
 
+        this.receivedUpdate = false;
         this.lastUpdateMs = Date.now();
         this.currentTime = 0;
         this.paused = true;
@@ -49,15 +49,20 @@ class Channel {
 
     _addUser (user) {
         this.users.add(user);
-        // this.broadcast("setOccupants", {count: this.users.size});
-        this.broadcast("setOccupants", {count: 666});
+        this.broadcast("setOccupants", {count: this.users.size});
 
-        // Update the new user with the current playback state
-        let currentTime = this.currentTime;
-        if (!this.paused) {
-            currentTime += (Date.now()-this.lastUpdateMs) / 1000;
+        if (this.receivedUpdate) {
+            // Update the new user with the current playback state
+            let currentTime = this.currentTime;
+            if (!this.paused) {
+                currentTime += (Date.now()-this.lastUpdateMs) / 1000;
+            }
+            user.call("update", { currentTime, paused: this.paused });
+
+        } else {
+            // Request an update from the client that just started this channel
+            user.call("requestUpdate");
         }
-        user.call("update", { currentTime, paused: this.paused });
     }
 
     _removeUser (user) {
@@ -65,7 +70,6 @@ class Channel {
         this.broadcast("setOccupants", {count: this.users.size});
 
         // Dispose empty channels
-        // TODO: channels could be a weak reference?
         if (this.users.size == 0) {
             channels.delete(this.id);
         }
@@ -85,6 +89,7 @@ const RPC = {
     update (user, {currentTime, paused}) {
         let channel = user.channel;
 
+        channel.receivedUpdate = true;
         channel.lastUpdateMs = Date.now();
         channel.currentTime = currentTime;
         channel.paused = paused;
@@ -108,13 +113,21 @@ server.on("connection", client => {
     console.log("Client connected");
 
     client.on("message", data => {
-        let message = JSON.parse(data);
+        let message;
+        try {
+            message = JSON.parse(data);
+        } catch (error) {
+            console.log("Malformed json");
+            return;
+        }
+
         let {method, args} = message;
         let fn = RPC[method];
 
         console.log("Received message from client", message);
         if (fn == null) {
-            throw new Error("Missing method: "+method);
+            // throw new Error("Missing method: "+method);
+            return;
         }
         fn(user, args);
     });
