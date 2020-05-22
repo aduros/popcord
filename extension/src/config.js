@@ -2,7 +2,7 @@
 
 const DEBUG = process.env.NODE_ENV != "production";
 
-exports.TITLE = "Video Sync";
+exports.TITLE = "Watchalike";
 
 if (DEBUG) {
     exports.WEB_URL = "http://localhost:3100";
