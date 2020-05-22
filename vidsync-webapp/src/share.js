@@ -46,7 +46,6 @@ function checkPermissionsAndRedirect () {
         if (hasPermission) {
             redirect();
         } else {
-            // alert("You will be prompted");
             setDisplayState("need-permission");
             // redirect();
         }

@@ -3,3 +3,6 @@
 npm run build
 rm -f dist-release.zip
 zip -r dist-release.zip dist
+
+echo
+echo "Go to https://chrome.google.com/webstore/devconsole/9364ea4d-35bb-4e0a-ac9b-85dcbc5e7353/gaobldoddnlopccjidfbahcofidniohn/edit/package?hl=en to do the submission"

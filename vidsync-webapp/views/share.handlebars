@@ -1,29 +1,31 @@
-<div class="container" style="margin-top: 200px">
-<div id="share-jumbotron" class="jumbotron" style="visibility: hidden">
-  <!-- <h1 class="display&#45;5">Watch Videos in Sync</h1> -->
-  <p class="lead">You've been invited to watch a video together at {{siteName}}.</p>
-  <hr class="my-4">
-  <div id="need-chrome" style="display: none">
-      <p>Before you start, you need to use Google Chrome.</p>
-      <div class="text-center">
-          <a class="btn btn-primary btn-lg" href="https://www.google.com/chrome/" target="_blank" role="button">
-              <i class="fas fa-external-link-alt"></i> Download Google Chrome</a>
-      </div>
-  </div>
-  <div id="need-extension" style="display: none">
-    <p>Before you start, you need to add the free extension to Google Chrome.</p>
-    <div class="text-center">
-        <a class="btn btn-primary btn-lg" href="https://chrome.google.com/webstore/detail/gaobldoddnlopccjidfbahcofidniohn" target="_blank" role="button">
-        <i class="fas fa-external-link-alt"></i> Add to Google Chrome</a>
+<main id="share-jumbotron" role="main" class="inner cover" style="visibility: hidden">
+    <h1 class="cover-heading">You've been invited to watch a video together at {{siteName}}.</h1>
+    <div id="need-chrome" style="display: none">
+        <p class="lead">Before you start, you need to use Google Chrome.</p>
+        <p class="lead">
+            <a class="btn btn-secondary btn-lg" href="https://www.google.com/chrome/" target="_blank" role="button">
+                <i class="fas fa-external-link-alt"></i> Download Google Chrome</a>
+        </p>
     </div>
-  </div>
-  <div id="need-permission" style="display: none">
-      <p>Before you go, you need to allow Video Sync to work on {{siteName}}.</p>
-      <div class="text-center">
-          <a id="grant-permission" class="btn btn-primary btn-lg" href="#" role="button">Allow and continue to {{siteName}}</a>
-      </div>
-  </div>
-</div>
-</div>
+    <div id="need-extension" style="display: none">
+      <p class="lead">Before you start, you need to add the free extension to Google Chrome.</p>
+      <p class="lead">
+          <a class="btn btn-secondary btn-lg" href="https://chrome.google.com/webstore/detail/gaobldoddnlopccjidfbahcofidniohn" target="_blank" role="button">
+          <i class="fas fa-external-link-alt"></i> Add to Google Chrome</a>
+      </p>
+    </div>
+    <div id="need-permission" style="display: none">
+        <p class="lead">Before you go, you need to allow Video Sync to work on {{siteName}}.</p>
+        <p class="lead">
+            <a id="grant-permission" class="btn btn-secondary btn-lg" href="#" role="button">Allow and continue to {{siteName}}</a>
+        </p>
+    </div>
+</main>
+
+<footer class="mastfoot mt-auto">
+  <!-- <div class="inner"> -->
+  <!--   <p>Cover template for <a href="https://getbootstrap.com/">Bootstrap</a>, by <a href="https://twitter.com/mdo">@mdo</a>.</p> -->
+  <!-- </div> -->
+</footer>
 
 <script src="/share.js"></script>

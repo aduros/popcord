@@ -12,7 +12,8 @@ app.engine("handlebars", expressHandlebars());
 app.set("view engine", "handlebars");
 
 app.get("/", (req, res) => {
-    res.render("landing");
+    res.redirect("https://chrome.google.com/webstore/detail/gaobldoddnlopccjidfbahcofidniohn");
+    // res.render("landing");
 });
 
 app.get("/invite/:channel", (req, res) => {

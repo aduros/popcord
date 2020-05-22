@@ -1,0 +1,26 @@
+{
+  "name": "Video Sync (Beta)",
+  "version": "1.0.3",
+  "description": "Watch videos in sync.",
+  "manifest_version": 2,
+  "icons": {
+    "16": "icons/default16.png"
+  },
+  "page_action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://vidsync.aduros.com/invite/*",
+      "http://localhost:3100/invite/*"
+    ]
+  },
+  "permissions": [
+    "activeTab", "storage"
+  ],
+  "optional_permissions": ["<all_urls>"]
+}
