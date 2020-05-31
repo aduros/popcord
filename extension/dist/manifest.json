@@ -1,10 +1,12 @@
 {
-  "name": "Watchalike",
-  "version": "1.0.3",
-  "description": "Watch videos together with friends.",
+  "name": "Popcord",
+  "version": "1.0.5",
+  "description": "Watch videos together with friends, remotely.",
   "manifest_version": 2,
   "icons": {
-    "16": "icons/default16.png"
+    "16": "icons/default16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "page_action": {
     "default_popup": "popup.html"
@@ -15,7 +17,7 @@
   },
   "externally_connectable": {
     "matches": [
-      "https://vidsync.aduros.com/invite/*",
+      "https://popcord.aduros.com/invite/*",
       "http://localhost:3100/invite/*"
     ]
   },

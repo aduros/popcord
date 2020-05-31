@@ -42,8 +42,7 @@ function run () {
 
         let player = await videoPlayer.create();
 
-        let blockUpdates = false;
-        let lastUpdateFromServer = -1;
+        // let lastUpdateFromServer = -1;
 
         socket = new WebSocket(config.SOCKET_URL);
         function callServer (method, args) {
@@ -61,7 +60,7 @@ function run () {
         let RPC = {
             // Called by the server to update this client
             update ({currentTime, paused}) {
-                lastUpdateFromServer = Date.now();
+                // lastUpdateFromServer = Date.now();
                 player.update(currentTime, paused);
             },
 
@@ -83,11 +82,10 @@ function run () {
             let batchingUpdate = false;
             player.addUpdateListener(() => {
                 console.log("player update listener fired");
-                if (Date.now() - lastUpdateFromServer < 300) {
-                    console.log("TOO SOON");
-                    return; // Too soon, this event probably came from a server update and not the user
-                }
-                // sendUpdate();
+                // if (Date.now() - lastUpdateFromServer < 300) {
+                //     console.log("TOO SOON");
+                //     return; // Too soon, this event probably came from a server update and not the user
+                // }
                 if (!batchingUpdate) {
                     batchingUpdate = true;
                     setTimeout(() => {

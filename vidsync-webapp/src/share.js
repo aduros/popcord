@@ -32,7 +32,7 @@ function redirect () {
 
 function checkPermissionsAndRedirect () {
     callBackground("hasPermission", function (hasPermission) {
-        console.log("hasPermission", hasPermission);
+        // console.log("hasPermission", hasPermission);
         if (chrome.runtime.lastError) {
             setDisplayState("need-extension");
 
@@ -42,7 +42,7 @@ function checkPermissionsAndRedirect () {
             return;
         }
 
-        console.log("hasPermission", hasPermission);
+        // console.log("hasPermission", hasPermission);
         if (hasPermission) {
             redirect();
         } else {

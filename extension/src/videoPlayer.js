@@ -3,15 +3,22 @@
 class HtmlPlayer {
     constructor (element) {
         this.element = element;
+        this.ignoreEvents = false;
     }
 
     addUpdateListener (fn) {
-        console.log("Adding listeners");
-        this.element.addEventListener("pause", fn);
-        this.element.addEventListener("play", fn);
+        let onEvent = event => {
+            if (!this.ignoreEvents) {
+                fn();
+            } else {
+                console.log("An event was blocked because ignoreEvents was true");
+            }
+        };
+        this.element.addEventListener("pause", onEvent);
+        this.element.addEventListener("play", onEvent);
         // this.element.addEventListener("seeking", fn);
         // this.element.addEventListener("playing", fn);
-        this.element.addEventListener("seeked", fn);
+        this.element.addEventListener("seeked", onEvent);
     }
 
     getCurrentTime () {
@@ -22,32 +29,57 @@ class HtmlPlayer {
         return this.element.paused;
     }
 
-    update (currentTime, paused) {
-        this.element.currentTime = currentTime;
-        if (paused) {
+    doPlay () {
+        return this.element.play();
+    }
+
+    doPause () {
+        return new Promise(resolve => {
+            // if (this.element.paused) {
+            //     resolve();
+            //     return;
+            // }
+
+            let onPause = () => {
+                this.element.removeEventListener("pause", onPause);
+                resolve();
+            };
+            this.element.addEventListener("pause", onPause);
             this.element.pause();
-        } else {
-            this.element.play();
+        });
+    }
+
+    doSeek (currentTime) {
+        return new Promise(resolve => {
+            let onSeeked = () => {
+                this.element.removeEventListener("seeked", onSeeked);
+                resolve();
+            };
+            this.element.addEventListener("seeked", onSeeked);
+            this.element.currentTime = currentTime;
+        });
+    }
+
+    async update (currentTime, paused) {
+        console.log("Handling server update, set ignoreEvents=true");
+        this.ignoreEvents = true;
+        if (currentTime != this.element.currentTime) {
+            await this.doSeek(currentTime);
         }
+        if (paused) {
+            if (!this.element.paused) {
+                await this.doPause();
+            }
+        } else {
+            if (this.element.paused) {
+                await this.doPlay();
+            }
+        }
+        console.log("Done handling server update, set ignoreEvents=false");
+        this.ignoreEvents = false;
     }
 }
 
-// function evalInParent (expr) {
-//     return new Promise(resolve => {
-//         let eventType = "__vidsync_"+Math.random();
-//         function onEvent (event) {
-//             document.removeEventListener(eventType, onEvent);
-//             resolve(event.detail);
-//         }
-//         document.addEventListener(eventType, onEvent);
-//
-//         let script = document.createElement("script");
-//         script.textContent = "document.dispatchEvent(new CustomEvent('"+eventType+"', {detail: "+expr+"}))";
-//
-//         document.documentElement.appendChild(script);
-//         document.documentElement.removeChild(script);
-//     });
-// }
 function evalInParent (js) {
     let script = document.createElement("script");
     script.textContent = "(function(){\n" + js + "\n})();";
@@ -56,35 +88,26 @@ function evalInParent (js) {
     document.documentElement.removeChild(script);
 }
 
-function callNetflix (method, params) {
-    let code = `
-        let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
-        let player = videoPlayer.getVideoPlayerBySessionId(videoPlayer.getAllPlayerSessionIds()[0]);
-        player.`+method+`(`+params+`);
-    `;
-}
-
 class NetflixPlayer extends HtmlPlayer {
     constructor (element) {
         super(element);
     }
 
-    // getCurrentTime () {
-    //     return this.player.getCurrentTime() / 1000;
-    // }
-    //
-    // getPaused () {
-    //     return this.player.isPaused();
-    // }
+    doSeek (currentTime) {
+        return new Promise(resolve => {
+            let onSeeked = () => {
+                this.element.removeEventListener("seeked", onSeeked);
+                resolve();
+            };
+            this.element.addEventListener("seeked", onSeeked);
 
-    update (currentTime, paused) {
-        let hack = `
-            let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
-            let player = videoPlayer.getVideoPlayerBySessionId(videoPlayer.getAllPlayerSessionIds()[0]);
-            player.seek(`+Math.floor(currentTime*1000)+`);
-            player.` + (paused ? "pause" : "play") + `();
-        `;
-        evalInParent(hack);
+            let hack = `
+                let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
+                let player = videoPlayer.getVideoPlayerBySessionId(videoPlayer.getAllPlayerSessionIds()[0]);
+                player.seek(`+Math.floor(currentTime*1000)+`);
+            `;
+            evalInParent(hack);
+        });
     }
 }
 
