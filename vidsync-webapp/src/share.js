@@ -1,11 +1,5 @@
 "use strict";
 
-const DEBUG = process.env.NODE_ENV != "production";
-
-var extensionId = DEBUG
-    ? "mmcfiocbpgbfnboacbaddlofcackkikb"
-    : "gaobldoddnlopccjidfbahcofidniohn";
-
 var states = [
     document.getElementById("need-chrome"),
     document.getElementById("need-extension"),
@@ -17,7 +11,7 @@ function callBackground (method, args, callback) {
         callback = args;
         args = null;
     }
-    chrome.runtime.sendMessage(extensionId, {method: method, args: args}, callback);
+    chrome.runtime.sendMessage(EXTENSION_ID, {method: method, args: args}, callback);
 }
 
 function redirect () {

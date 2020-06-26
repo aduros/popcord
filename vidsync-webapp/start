@@ -2,6 +2,11 @@
 
 "use strict";
 
+const DEBUG = process.env.NODE_ENV != "production";
+const EXTENSION_ID = DEBUG
+    ? "mmcfiocbpgbfnboacbaddlofcackkikb"
+    : "gaobldoddnlopccjidfbahcofidniohn";
+
 const express = require("express");
 const expressHandlebars = require("express-handlebars");
 
@@ -21,7 +26,7 @@ app.get("/invite/:channel", (req, res) => {
     let parsed = new URL(destination);
     let siteName = parsed.hostname.replace(/^www\./, "") || "site";
 
-    res.render("share", { siteName });
+    res.render("share", { siteName, EXTENSION_ID });
 });
 
 app.listen(3100);
