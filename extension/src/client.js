@@ -42,9 +42,26 @@ function run () {
 
         let player = await videoPlayer.create();
 
-        // let lastUpdateFromServer = -1;
+        let batchingUpdate = false;
+        player.addUpdateListener(() => {
+            console.log("player update listener fired");
+            if (socket == null || socket.readyState != 1) {
+                console.log("Socket ready yet");
+                return;
+            }
+            // if (Date.now() - lastUpdateFromServer < 300) {
+            //     console.log("TOO SOON");
+            //     return; // Too soon, this event probably came from a server update and not the user
+            // }
+            if (!batchingUpdate) {
+                batchingUpdate = true;
+                setTimeout(() => {
+                    batchingUpdate = false;
+                    sendUpdate();
+                }, 1000);
+            }
+        });
 
-        socket = new WebSocket(config.SOCKET_URL);
         function callServer (method, args) {
             socket.send(JSON.stringify({ method, args }));
         }
@@ -75,48 +92,40 @@ function run () {
             },
         };
 
-        socket.onopen = () => {
-            console.log("Connected to server");
-            // messaging.call("onConnect");
+        var reconnectCount = 0;
+        function createSocket () {
+            socket = new WebSocket(config.SOCKET_URL);
 
-            let batchingUpdate = false;
-            player.addUpdateListener(() => {
-                console.log("player update listener fired");
-                // if (Date.now() - lastUpdateFromServer < 300) {
-                //     console.log("TOO SOON");
-                //     return; // Too soon, this event probably came from a server update and not the user
-                // }
-                if (!batchingUpdate) {
-                    batchingUpdate = true;
-                    setTimeout(() => {
-                        batchingUpdate = false;
-                        sendUpdate();
-                    }, 1000);
-                }
-            });
+            socket.onopen = () => {
+                console.log("Connected to server");
+                // messaging.call("onConnect");
 
-            socket.onmessage = event => {
-                let message = JSON.parse(event.data);
-                let {method, args} = message;
-                let fn = RPC[method];
+                socket.onmessage = event => {
+                    let message = JSON.parse(event.data);
+                    let {method, args} = message;
+                    let fn = RPC[method];
 
-                console.log("Got message from server", message);
-                if (fn == null) {
-                    throw new Error("Missing method: "+method);
-                }
-                fn(args);
+                    console.log("Got message from server", message);
+                    if (fn == null) {
+                        throw new Error("Missing method: "+method);
+                    }
+                    fn(args);
+                };
+
+                callServer("setChannel", {id: channel});
             };
 
-            socket.onclose = () => {
+            socket.onclose = event => {
                 messaging.call("onDisconnect");
+
+                if (!event.wasClean) {
+                    console.log("Reconnecting...");
+                    ++reconnectCount;
+                    setTimeout(createSocket, Math.max(reconnectCount*500, 4000));
+                }
             };
-
-            callServer("setChannel", {id: channel});
-        };
-
-        socket.onclose = function () {
-            messaging.call("setStatus", {connected: false, count: 0});
-        };
+        }
+        createSocket();
     });
 }
 
