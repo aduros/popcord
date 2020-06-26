@@ -23,8 +23,8 @@ messaging.exposeFunctions({
 let share = document.getElementById("share");
 share.onclick = () => {
     share.onclick = null;
-    messaging.call("connectFromPopup", url => {
-        navigator.clipboard.writeText(url);
+    messaging.call("connectFromPopup", async url => {
+        await navigator.clipboard.writeText(url);
         window.close();
     });
 };
