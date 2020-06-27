@@ -99,18 +99,22 @@ class HtmlPlayer {
 
     async update (currentTime, paused) {
         console.log("Handling server update, set ignoreEvents=true");
+        var updateType = null;
         this.ignoreEvents = true;
         if (currentTime != this.element.currentTime) {
+            updateType = "seek";
             console.log("doSeek()");
             await this.doSeek(currentTime);
         }
         if (paused) {
             if (!this.element.paused) {
+                updateType = "pause";
                 console.log("doPause()");
                 await this.doPause();
             }
         } else {
             if (this.element.paused) {
+                updateType = "play";
                 console.log("doPlay()");
                 await this.doPlay();
             }
@@ -118,6 +122,7 @@ class HtmlPlayer {
         console.log("Done handling server update, set ignoreEvents=false");
         this.ignoreEvents = false;
         this._lastPaused = paused;
+        return updateType;
     }
 }
 

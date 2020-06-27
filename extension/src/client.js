@@ -1,15 +1,28 @@
 "use strict";
 
+const Noty = require("noty");
 const config = require("./config");
 const messaging = require("./messaging");
 const videoPlayer = require("./videoPlayer");
+const l10n = require("./l10n");
 
 const DEBUG = process.env.NODE_ENV != "production";
 
 let socket = null;
 let running = false;
 
-let statusCount = 0;
+let statusCount = -1;
+
+function showNotification (type, text) {
+    new Noty({
+        type,
+        timeout: 4000,
+        // progressBar: false,
+        theme: "sunset",
+        text: "<b>Popcord</b> \u2015 "+text,
+        killer: true,
+    }).show();
+}
 
 function run () {
     console.log("Called run");
@@ -80,14 +93,44 @@ function run () {
             });
         }
 
+        // To prevent too many notifications
+        let lastUpdateNotification = 0;
+
         let RPC = {
             // Called by the server to update this client
-            update ({currentTime, paused}) {
+            async update ({currentTime, paused, suppressNotification}) {
                 // lastUpdateFromServer = Date.now();
-                player.update(currentTime, paused);
+                var updateType = await player.update(currentTime, paused);
+
+                if (!suppressNotification && Date.now()-lastUpdateNotification >= 500) {
+                    var text = null;
+                    switch (updateType) {
+                        case "seek":
+                            text = "someone seeked the video.";
+                            break;
+                        case "pause":
+                            text = "someone paused the video."
+                            break;
+                        case "play":
+                            text = "someone played the video.";
+                            break;
+                    }
+                    if (text != null) {
+                        lastUpdateNotification = Date.now();
+                        showNotification("info", text);
+                    }
+                }
             },
 
             setOccupants ({count}) {
+                if (statusCount < 0) {
+                    // First call to setOccupants() since connecting
+                    showNotification("info", l10n.getStatusText(count).toLowerCase()+".");
+                } else if (count > statusCount) {
+                    showNotification("info", "someone joined.");
+                } else if (count < statusCount) {
+                    showNotification("info", "someone left.");
+                }
                 statusCount = count;
                 messaging.call("setStatus", {connected: true, count});
             },
@@ -132,6 +175,8 @@ function run () {
         var reconnectCount = 0;
         function createSocket () {
             socket = new WebSocket(config.SOCKET_URL);
+
+            statusCount = -1;
 
             socket.onopen = () => {
                 console.log("Connected to server");

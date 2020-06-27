@@ -63,17 +63,17 @@ class Channel {
         this.broadcast("setOccupants", {count: this.users.size});
 
         if (this.receivedUpdate) {
+            if (this.url != null) {
+                // Send them to the current episode
+                user.call("setUrlIfFromInviteLink", {url: this.url});
+            }
+
             // Update the new user with the current playback state
             let currentTime = this.currentTime;
             if (!this.paused) {
                 currentTime += (Date.now()-this.lastUpdateMs) / 1000;
             }
-            user.call("update", { currentTime, paused: this.paused });
-
-            if (this.url != null) {
-                // Send them to the current episode
-                user.call("setUrlIfFromInviteLink", {url: this.url});
-            }
+            user.call("update", { currentTime, paused: this.paused, suppressNotification: true });
 
         } else {
             // Request an update from the client that just started this channel

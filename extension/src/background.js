@@ -61,25 +61,31 @@ function createShareUrl ({channel, destination}) {
     return config.WEB_URL + "/invite/"+encodeURIComponent(channel)+"?u="+encodeURIComponent(destination);
 }
 
+function injectClient (tabId) {
+    chrome.tabs.insertCSS(tabId, {
+        file: "/vendor/noty/noty.css",
+    }, (arg) => {console.log("Got result", arg)});
+    chrome.tabs.executeScript(tabId, {
+        file: "/client.js",
+        // allFrames: true,
+    });
+}
+
 messaging.exposeFunctions({
     connectFromPopup (sender, args, callback) {
         messaging.getCurrentTab(tab => {
             let destination = tab.url;
 
-            function injectClient () {
-                chrome.tabs.executeScript(tab.id, {
-                    file: "/client.js",
-                    // allFrames: true,
-                });
-            }
             getChannel(tab.id, channel => {
                 if (channel != null) {
                     // Already have a channel for this tab
-                    injectClient();
+                    injectClient(tab.id);
                 } else {
                     // Generate a new channel ID and assign it
                     channel = generateChannelId();
-                    setChannel(tab.id, channel, injectClient);
+                    setChannel(tab.id, channel, () => {
+                        injectClient(tab.id);
+                    });
                 }
 
                 let redirectUrl = createShareUrl({channel, destination});
@@ -163,10 +169,7 @@ chrome.tabs.onUpdated.addListener((tabId, {status}) => {
     getChannel(tabId, function (channel) {
         console.log("Channel for tab", tabId, channel);
         if (channel != null) {
-            chrome.tabs.executeScript(tabId, {
-                file: "/client.js",
-                // allFrames: true,
-            });
+            injectClient(tabId);
         }
     });
 });
