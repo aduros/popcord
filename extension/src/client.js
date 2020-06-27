@@ -40,27 +40,33 @@ function run () {
             return; // Normal?
         }
 
-        let player = await videoPlayer.create();
+        async function createVideoPlayer () {
+            let player = await videoPlayer.create();
 
-        let batchingUpdate = false;
-        player.addUpdateListener(() => {
-            console.log("player update listener fired");
-            if (socket == null || socket.readyState != 1) {
-                console.log("Socket ready yet");
-                return;
-            }
-            // if (Date.now() - lastUpdateFromServer < 300) {
-            //     console.log("TOO SOON");
-            //     return; // Too soon, this event probably came from a server update and not the user
-            // }
-            if (!batchingUpdate) {
-                batchingUpdate = true;
-                setTimeout(() => {
-                    batchingUpdate = false;
-                    sendUpdate();
-                }, 1000);
-            }
-        });
+            let batchingUpdate = false;
+            player.setUpdateListener(() => {
+                console.log("player update listener fired");
+                if (socket == null || socket.readyState != 1) {
+                    console.log("Socket not ready yet");
+                    return;
+                }
+                // if (Date.now() - lastUpdateFromServer < 300) {
+                //     console.log("TOO SOON");
+                //     return; // Too soon, this event probably came from a server update and not the user
+                // }
+                if (!batchingUpdate) {
+                    batchingUpdate = true;
+                    setTimeout(() => {
+                        batchingUpdate = false;
+                        sendUpdate();
+                    }, 1000);
+                }
+            });
+
+            return player;
+        }
+
+        let player = await createVideoPlayer();
 
         function callServer (method, args) {
             socket.send(JSON.stringify({ method, args }));
@@ -90,7 +96,38 @@ function run () {
             requestUpdate () {
                 sendUpdate();
             },
+
+            // Called by the server when somebody else went to a new episode
+            setUrl ({url}) {
+                console.log("setUrl()");
+                if (location.href != url) {
+                    location.href = url;
+                }
+            },
+
+            setUrlIfFromInviteLink ({url}) {
+                console.log("setUrlIfFromInviteLink()");
+                if (location.href != url && document.referrer && document.referrer.startsWith(config.WEB_URL)) {
+                    location.href = url;
+                }
+            },
         };
+
+        var url = location.href;
+        setInterval(async function () {
+            if (location.href != url) {
+                url = location.href;
+                console.log("URL changed, new episode?", url);
+                callServer("setUrl", {url});
+
+                // Recreate our video player because the old one may be invalid
+                console.log("Disposing old video player");
+                player.dispose();
+                player = await createVideoPlayer();
+                console.log("Got new video player");
+                sendUpdate();
+            }
+        }, 1000); // Doesn't seem like there's a way besides polling
 
         var reconnectCount = 0;
         function createSocket () {

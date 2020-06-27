@@ -4,21 +4,58 @@ class HtmlPlayer {
     constructor (element) {
         this.element = element;
         this.ignoreEvents = false;
+        this._onEvent = null;
+
+        this._lastPaused = this.getPaused();
     }
 
-    addUpdateListener (fn) {
-        let onEvent = event => {
-            if (!this.ignoreEvents) {
-                fn();
-            } else {
+    setUpdateListener (fn) {
+        if (this._onEvent != null) {
+            return;
+        }
+
+        this._onEvent = event => {
+            console.log("Got HTML5 video event: "+event.type);
+
+            if (this.ignoreEvents) {
                 console.log("An event was blocked because ignoreEvents was true");
+                return;
             }
+
+            // Attempt to filter out redundant play/pause events
+            switch (event.type) {
+            case "pause":
+                if (this._lastPaused) {
+                    console.log("Ignoring redundant pause event");
+                    return;
+                }
+                this._lastPaused = true;
+                break;
+            case "play":
+                if (!this._lastPaused) {
+                    console.log("Ignoring redundant play event");
+                    return;
+                }
+                this._lastPaused = false;
+                break;
+            }
+
+            fn();
         };
-        this.element.addEventListener("pause", onEvent);
-        this.element.addEventListener("play", onEvent);
-        // this.element.addEventListener("seeking", fn);
-        // this.element.addEventListener("playing", fn);
-        this.element.addEventListener("seeked", onEvent);
+        this.element.addEventListener("pause", this._onEvent);
+        this.element.addEventListener("play", this._onEvent);
+        // this.element.addEventListener("seeking", this._onEvent);
+        // this.element.addEventListener("playing", this._onEvent);
+        this.element.addEventListener("seeked", this._onEvent);
+    }
+
+    dispose () {
+        if (this._onEvent != null) {
+            this.element.removeEventListener("pause", this._onEvent);
+            this.element.removeEventListener("play", this._onEvent);
+            this.element.removeEventListener("seeked", this._onEvent);
+            this._onEvent = null;
+        }
     }
 
     getCurrentTime () {
@@ -64,33 +101,63 @@ class HtmlPlayer {
         console.log("Handling server update, set ignoreEvents=true");
         this.ignoreEvents = true;
         if (currentTime != this.element.currentTime) {
+            console.log("doSeek()");
             await this.doSeek(currentTime);
         }
         if (paused) {
             if (!this.element.paused) {
+                console.log("doPause()");
                 await this.doPause();
             }
         } else {
             if (this.element.paused) {
+                console.log("doPlay()");
                 await this.doPlay();
             }
         }
         console.log("Done handling server update, set ignoreEvents=false");
         this.ignoreEvents = false;
+        this._lastPaused = paused;
     }
-}
-
-function evalInParent (js) {
-    let script = document.createElement("script");
-    script.textContent = "(function(){\n" + js + "\n})();";
-
-    document.documentElement.appendChild(script);
-    document.documentElement.removeChild(script);
 }
 
 class NetflixPlayer extends HtmlPlayer {
     constructor (element) {
         super(element);
+    }
+
+    evalPlayer (js) {
+        let script = document.createElement("script");
+        script.textContent = `(function(){
+            let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
+            let player = videoPlayer.getVideoPlayerBySessionId(videoPlayer.getAllPlayerSessionIds()[0]);
+            `+js+`
+        })();`;
+
+        document.documentElement.appendChild(script);
+        document.documentElement.removeChild(script);
+    }
+
+    doPlay () {
+        return new Promise(resolve => {
+            let onPlay = () => {
+                this.element.removeEventListener("play", onPlay);
+                resolve();
+            };
+            this.element.addEventListener("play", onPlay);
+            this.evalPlayer("player.play()");
+        });
+    }
+
+    doPause () {
+        return new Promise(resolve => {
+            let onPause = () => {
+                this.element.removeEventListener("pause", onPause);
+                resolve();
+            };
+            this.element.addEventListener("pause", onPause);
+            this.evalPlayer("player.pause()");
+        });
     }
 
     doSeek (currentTime) {
@@ -100,13 +167,7 @@ class NetflixPlayer extends HtmlPlayer {
                 resolve();
             };
             this.element.addEventListener("seeked", onSeeked);
-
-            let hack = `
-                let videoPlayer = netflix.appContext.state.playerApp.getAPI().videoPlayer;
-                let player = videoPlayer.getVideoPlayerBySessionId(videoPlayer.getAllPlayerSessionIds()[0]);
-                player.seek(`+Math.floor(currentTime*1000)+`);
-            `;
-            evalInParent(hack);
+            this.evalPlayer("player.seek("+Math.floor(currentTime*1000)+")");
         });
     }
 }

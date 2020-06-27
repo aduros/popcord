@@ -9,9 +9,9 @@ const DEBUG = process.env.NODE_ENV != "production";
 console.log("Hello background");
 console.log("Debug build? "+DEBUG);
 
-if (DEBUG) {
-    chrome.storage.local.clear();
-}
+// if (DEBUG) {
+//     chrome.storage.local.clear();
+// }
 
 function getChannel (tabId, callback) {
     chrome.storage.local.get("tabChannels", ({tabChannels}) => {

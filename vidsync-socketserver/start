@@ -38,12 +38,23 @@ class Channel {
         this.lastUpdateMs = Date.now();
         this.currentTime = 0;
         this.paused = true;
+
+        /** The new URL if there was an episode change. */
+        this.url = null;
     }
 
     broadcast (method, args) {
         console.log("Broadcasting", method, args);
         for (let user of this.users) {
             user.call(method, args);
+        }
+    }
+
+    broadcastExcept (user, method, args) {
+        for (let peer of this.users) {
+            if (peer != user) {
+                peer.call(method, args);
+            }
         }
     }
 
@@ -58,6 +69,11 @@ class Channel {
                 currentTime += (Date.now()-this.lastUpdateMs) / 1000;
             }
             user.call("update", { currentTime, paused: this.paused });
+
+            if (this.url != null) {
+                // Send them to the current episode
+                user.call("setUrlIfFromInviteLink", {url: this.url});
+            }
 
         } else {
             // Request an update from the client that just started this channel
@@ -86,24 +102,31 @@ function getChannel (id) {
 
 // Methods callable by clients
 const RPC = {
+    setChannel (user, {id}) {
+        let channel = getChannel(id);
+        user.setChannel(channel);
+    },
+
     update (user, {currentTime, paused}) {
         let channel = user.channel;
+        // if (user.channel == null) {
+        //     return;
+        // }
 
         channel.receivedUpdate = true;
         channel.lastUpdateMs = Date.now();
         channel.currentTime = currentTime;
         channel.paused = paused;
 
-        for (let peer of user.channel.users) {
-            if (peer != user) {
-                peer.call("update", {currentTime, paused});
-            }
-        }
+        user.channel.broadcastExcept(user, "update", {currentTime, paused});
     },
 
-    setChannel (user, {id}) {
-        let channel = getChannel(id);
-        user.setChannel(channel);
+    setUrl (user, {url}) {
+        let channel = user.channel;
+
+        channel.url = url;
+
+        user.channel.broadcastExcept(user, "setUrl", {url});
     },
 };
 
