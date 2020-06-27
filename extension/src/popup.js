@@ -5,7 +5,7 @@ const messaging = require("./messaging");
 
 function setStatus (connected, count) {
     document.getElementById("status-line").style.display = connected ? "" : "none";
-    document.getElementById("status-text").textContent = l10n.getStatusText(count);
+    document.getElementById("status-text").textContent = l10n.getStatusText(count)+".";
 }
 
 messaging.exposeFunctions({
@@ -29,12 +29,12 @@ share.onclick = () => {
     });
 };
 
-let disconnect = document.getElementById("disconnect");
-disconnect.onclick = () => {
-    disconnect.onclick = null;
-    messaging.call("disconnect"); // background.js
-    messaging.callOnCurrentTab("disconnect"); // client.js
-};
+// let disconnect = document.getElementById("disconnect");
+// disconnect.onclick = () => {
+//     disconnect.onclick = null;
+//     messaging.call("disconnect"); // background.js
+//     messaging.callOnCurrentTab("disconnect"); // client.js
+// };
 
 setStatus(false, 0);
 messaging.callOnCurrentTab("getStatus", ({connected, count}) => {
