@@ -2,7 +2,7 @@
 
 "use strict";
 
-const DEBUG = process.env.NODE_ENV != "production";
+const DEBUG = process.env.PRODUCTION != "1";
 const EXTENSION_ID = DEBUG
     ? "mmcfiocbpgbfnboacbaddlofcackkikb"
     : "gaobldoddnlopccjidfbahcofidniohn";
