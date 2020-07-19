@@ -1,9 +1,9 @@
 # Popcord
 
-![Screenshot](media/screenshot2.png)
-
-Popcord is a Chrome extension for watching video with friends remotely. Video playback is
+[Popcord](https://popcord.aduros.com) is a Chrome extension for watching video with friends remotely. Video playback is
 synchronized for everyone watching together. No more countdowns to hit the play button!
+
+![Screenshot](media/screenshot2.png)
 
 Popcord was built with love during the 2020 quarantine to keep in touch with friends and family.
 
